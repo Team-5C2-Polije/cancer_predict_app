@@ -1,8 +1,11 @@
 import 'dart:io';
 
+import 'package:cancer_predict_app/main_window_page.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:logger/logger.dart';
+import 'package:get/get.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,7 +14,8 @@ void main() {
 
 void _runFlask() async {
   try {
-    Process.run('python', ['app.py'], workingDirectory: './').then((ProcessResult results) {
+    Process.run('python', ['app.py'], workingDirectory: './')
+        .then((ProcessResult results) {
       Logger().i(results.stdout);
       Logger().i(results.stderr);
     });
@@ -25,13 +29,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-        useMaterial3: true,
+    return ScreenUtilInit(
+      child: GetMaterialApp(
+        title: 'Flutter Demo',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
+        ),
+        home: const MyHomePage(title: 'Flutter Demo Home Page'),
       ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
@@ -100,6 +106,14 @@ class _MyHomePageState extends State<MyHomePage> {
             Text(
               '$_counter',
               style: Theme.of(context).textTheme.headlineMedium,
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Get.to(
+                  const MainWindowPage()
+                );
+              },
+              child: const Text("START"),
             ),
           ],
         ),
