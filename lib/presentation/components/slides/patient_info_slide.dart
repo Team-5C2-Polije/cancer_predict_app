@@ -1,7 +1,9 @@
-import 'package:cancer_predict_app/app_input.dart';
+import 'package:cancer_predict_app/core/widgets/app_input.dart';
 import 'package:cancer_predict_app/main.dart';
+import 'package:cancer_predict_app/presentation/app_controller.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:get/get.dart';
 
 /// Slide 1
 class PatientInfoSlide extends StatelessWidget {
@@ -9,15 +11,13 @@ class PatientInfoSlide extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController input = TextEditingController();
-    final TextEditingController input2 = TextEditingController();
-    final TextEditingController input3 = TextEditingController();
+    AppController controller = Get.find();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
-        Text(
+        const Text(
           "Halaman Data Pasien",
           style: TextStyle(
             fontSize: 40,
@@ -27,22 +27,34 @@ class PatientInfoSlide extends StatelessWidget {
         ),
         SizedBox(height: 20.h),
         AppInput(
-          controller: input,
+          controller: controller.inpPatient.value,
           labelText: "ID Pasien",
           hintText: "",
           width: 60,
+          isNumberOnly: false,
+          isOnlyOne: false,
+          onChange: (s){
+            controller.onChangePatient();
+          },
         ),
         AppInput(
-          controller: input2,
+          controller: controller.inpAge.value,
           labelText: "Age",
           hintText: "",
+          isOnlyOne: false,
           width: 30,
+          onChange: (s){
+            controller.onChangePatient();
+          },
         ),
         AppInput(
-          controller: input3,
-          labelText: "Inputan 3",
+          controller: controller.inpGender.value,
+          labelText: "Gender",
           hintText: "",
           width: 30,
+          onChange: (s){
+            controller.onChangePatient();
+          },
         )
       ],
     );
