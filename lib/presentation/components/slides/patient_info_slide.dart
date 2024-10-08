@@ -2,6 +2,7 @@ import 'package:cancer_predict_app/core/widgets/app_input.dart';
 import 'package:cancer_predict_app/main.dart';
 import 'package:cancer_predict_app/presentation/app_controller.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
 
@@ -33,7 +34,7 @@ class PatientInfoSlide extends StatelessWidget {
           width: 60,
           isNumberOnly: false,
           isOnlyOne: false,
-          onChange: (s){
+          onChange: (s) {
             controller.onChangePatient();
           },
         ),
@@ -43,19 +44,35 @@ class PatientInfoSlide extends StatelessWidget {
           hintText: "",
           isOnlyOne: false,
           width: 30,
-          onChange: (s){
+          onChange: (s) {
             controller.onChangePatient();
           },
         ),
-        AppInput(
-          controller: controller.inpGender.value,
-          labelText: "Gender",
-          hintText: "",
-          width: 30,
-          onChange: (s){
-            controller.onChangePatient();
-          },
-        )
+        Row(
+          children: [
+            AppInput(
+              controller: controller.inpGender.value,
+              labelText: "Gender",
+              hintText: "",
+              width: 30,
+              onChange: (s) {
+                if(s.contains("1") || s.contains("2")){
+                  controller.onChangePatient();
+                }else{
+                  controller.inpGender.value.text = '';
+                }
+              },
+            ),
+            const SizedBox(width: 10),
+            const Text(
+              "1 = Laki-Laki / 2 = Perempuan",
+              style: TextStyle(
+                color: Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            )
+          ],
+        ),
       ],
     );
   }

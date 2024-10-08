@@ -6,7 +6,7 @@ class PredictCancerUseCase {
 
   PredictCancerUseCase(this.repository);
 
-  Future<String> call(PatientEntity patientEntity) async {
+  Future<PatientEntity> call(PatientEntity patientEntity) async {
     return await repository.predictCancer(patientEntity);
   }
 }

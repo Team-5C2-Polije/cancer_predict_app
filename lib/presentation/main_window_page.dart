@@ -106,23 +106,23 @@ class _MainWindowPageState extends State<MainWindowPage> {
               }),
             ),
             Padding(
-              padding: EdgeInsets.fromLTRB(30, 20, 30, 0),
+              padding: const EdgeInsets.fromLTRB(30, 20, 30, 0),
               child: Stack(
                 children: [
                   Obx(() {
                     switch (controller.slidePos.value) {
                       case 1:
-                        return PatientInfoSlide();
+                        return const PatientInfoSlide();
                       case 2:
-                        return EnvironmentalFactorSlide();
+                        return const EnvironmentalFactorSlide();
                       case 3:
-                        return MedicalHistorySlide();
+                        return const MedicalHistorySlide();
                       case 4:
-                        return MainSymptomSlide();
+                        return const MainSymptomSlide();
                       case 5:
-                        return AdditionalSymptomSlide();
+                        return const AdditionalSymptomSlide();
                       default:
-                        return Container(); // Atau widget lain jika nilai tidak terduga
+                        return Container();
                     }
                   }),
                 ],

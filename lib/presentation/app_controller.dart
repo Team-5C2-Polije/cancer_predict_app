@@ -1,9 +1,13 @@
+import 'package:cancer_predict_app/presentation/dialog/loading_dialog.dart';
+import 'package:cancer_predict_app/presentation/dialog/result_dialog.dart';
 import 'package:cancer_predict_app/domain/entity/cancer_entity.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:logger/logger.dart';
+import 'package:excel/excel.dart';
+import 'dart:io';
+import 'package:path_provider/path_provider.dart';
 
 import '../domain/usecase/cancer_usecase.dart';
 
@@ -11,11 +15,11 @@ class AppController extends GetxController {
   // final PredictCancerUseCase predictCancerUseCase;
 
   final PredictCancerUseCase predictCancerUseCase;
-
+  var excelData = <RxList<dynamic>>[].obs;
   AppController(this.predictCancerUseCase);
 
   var slidePos = 1.obs;
-  var predictionResult = ''.obs;
+  var predictionResult = PatientEntity().obs;
 
   var isInfoPatientValid = false.obs;
   var isEnviromentalValid = false.obs;
@@ -57,6 +61,12 @@ class AppController extends GetxController {
   var inpDryCough = TextEditingController().obs;
   var inpSnoring = TextEditingController().obs;
 
+  @override
+  void onInit() async{
+    super.onInit();
+    await loadExcelData();
+  }
+
   void onChangePatient() {
     String patientText = inpPatient.value.text.trim();
     String ageText = inpAge.value.text.trim();
@@ -73,7 +83,6 @@ class AppController extends GetxController {
     String smokingText = inpSmoking.value.text.trim();
     String passiveSmokerText = inpPassiveSmoker.value.text.trim();
 
-    // Periksa apakah semua input untuk faktor lingkungan tidak kosong
     isEnviromentalValid.value = airPollutionText.isNotEmpty &&
         alcoholUseText.isNotEmpty &&
         dustAllergyText.isNotEmpty &&
@@ -82,21 +91,18 @@ class AppController extends GetxController {
         passiveSmokerText.isNotEmpty;
   }
 
-  // Fungsi untuk memvalidasi riwayat medis
   void onChangeMedicalHistory() {
     String geneticRiskText = inpGeneticRisk.value.text.trim();
     String chronicLungDiseaseText = inpChronicLungDisease.value.text.trim();
     String obesityText = inpObesity.value.text.trim();
     String balancedDietText = inpBalancedDiet.value.text.trim();
 
-    // Periksa apakah semua input untuk riwayat medis tidak kosong
     isMedicalHistoryValid.value = geneticRiskText.isNotEmpty &&
         chronicLungDiseaseText.isNotEmpty &&
         obesityText.isNotEmpty &&
         balancedDietText.isNotEmpty;
   }
 
-  // Fungsi untuk memvalidasi riwayat medis tambahan
   void onChangeMainSymptom() {
     String chestPainText = inpChestPain.value.text.trim();
     String coughingOfBloodText = inpCoughingOfBlood.value.text.trim();
@@ -105,7 +111,6 @@ class AppController extends GetxController {
     String shortnessOfBreathText = inpShortnessOfBreath.value.text.trim();
     String wheezingText = inpWheezing.value.text.trim();
 
-    // Periksa apakah semua input untuk riwayat medis tambahan tidak kosong
     isMainSymptomValid.value = chestPainText.isNotEmpty &&
         coughingOfBloodText.isNotEmpty &&
         fatigueText.isNotEmpty &&
@@ -122,7 +127,6 @@ class AppController extends GetxController {
     String dryCoughText = inpDryCough.value.text.trim();
     String snoringText = inpSnoring.value.text.trim();
 
-    // Periksa apakah semua input untuk riwayat medis tambahan tidak kosong
     isAdditionalSymptom.value = swallowingDifficultyText.isNotEmpty &&
         clubbingOfFingerNailsText.isNotEmpty &&
         frequentColdText.isNotEmpty &&
@@ -138,10 +142,75 @@ class AppController extends GetxController {
     }
   }
 
+  void clearAllData(){
+    isAdditionalSymptom.value = false;
+    isMedicalHistoryValid.value = false;
+    isMainSymptomValid.value = false;
+    isEnviromentalValid.value = false;
+    isInfoPatientValid.value = false;
+
+    // Page 1
+    inpPatient.value.clear();
+    inpAge.value.clear();
+    inpGender.value.clear();
+
+    // Page 2
+    inpAirPollution.value.clear();
+    inpAlcoholUse.value.clear();
+    inpDustAllergy.value.clear();
+    inpOccupationalHazards.value.clear();
+    inpSmoking.value.clear();
+    inpPassiveSmoker.value.clear();
+
+    // Input controller untuk riwayat medis
+    inpGeneticRisk.value.clear();
+    inpChronicLungDisease.value.clear();
+    inpObesity.value.clear();
+    inpBalancedDiet.value.clear();
+
+    // Input controller untuk riwayat medis tambahan
+    inpChestPain.value.clear();
+    inpCoughingOfBlood.value.clear();
+    inpFatigue.value.clear();
+    inpWeightLoss.value.clear();
+    inpShortnessOfBreath.value.clear();
+    inpWheezing.value.clear();
+
+    // Input controller untuk riwayat medis tambahan lainnya
+    inpSwallowingDifficulty.value.clear();
+    inpClubbingOfFingerNails.value.clear();
+    inpFrequentCold.value.clear();
+    inpDryCough.value.clear();
+    inpSnoring.value.clear();
+  }
+
   Future<void> predict() async {
+    if (!isAdditionalSymptom.value ||
+        !isMainSymptomValid.value ||
+        !isInfoPatientValid.value ||
+        !isMedicalHistoryValid.value ||
+        !isEnviromentalValid.value) {
+      Get.snackbar(
+        "Data tidak lengkap",
+        "Mohon lengkapi semua informasi yang diperlukan sebelum melanjutkan.",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(10),
+        borderRadius: 8,
+        duration: const Duration(seconds: 3),
+      );
+      return;
+    } else {
+      LoadingDialog.showLoadingDialog();
+      await Future.delayed(const Duration(seconds: 3));
+      Get.back();
+    }
+
     try {
       var entity = PatientEntity(
         patientId: inpPatient.value.text,
+        accuracy: 0,
         age: int.parse(inpAge.value.text),
         gender: int.parse(inpGender.value.text),
         airPollution: int.parse(inpAirPollution.value.text),
@@ -167,34 +236,139 @@ class AppController extends GetxController {
         snoring: int.parse(inpSnoring.value.text),
       );
 
-      try {
-        predictionResult.value = await predictCancerUseCase(entity);
-      } catch (e, s) {
-        predictionResult.value = 'Failed to predict : $e | $s';
-      }
+      var tempEntity = await predictCancerUseCase(entity);
+      predictionResult.value = entity.copyWith(
+        level: tempEntity.level,
+        accuracy: tempEntity.accuracy,
+      );
+
+      ResultDialog(
+        data: predictionResult.value,
+        controller: Get.find<AppController>(),
+      ).showResultDialog();
     } catch (e, s) {
-      Logger().e('Error during prediction: $e | $s');
+      Logger().e(': $e | $s');
+      Get.snackbar(
+        "Error during prediction",
+        "$e",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(10),
+        borderRadius: 8,
+        duration: const Duration(seconds: 3),
+      );
     }
 
-    Get.dialog(
-      AlertDialog(
-        title: const Text('Prediction Result'),
-        content: Text(
-          'Your prediction result: ${predictionResult.value}',
-          style: GoogleFonts.nunito(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Get.back(); // Close the dialog
-            },
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
   }
+
+  Future<void> loadExcelData() async {
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      String filePath = '${directory.path}/patient_data.xlsx';
+      File file = File(filePath);
+
+      if (await file.exists()) {
+        var bytes = file.readAsBytesSync();
+        var excel = Excel.decodeBytes(bytes);
+        Sheet? sheet = excel['Patients'];
+        List<RxList<dynamic>> rows = [];
+        for (var row in sheet.rows) {
+          rows.add(row.map((cell) => cell?.value ?? '').toList().obs);
+        }
+
+        excelData.value = rows;
+      }
+    } catch (e) {
+      Get.snackbar(
+        "Error during load excel",
+        "$e",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.redAccent,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(10),
+        borderRadius: 8,
+        duration: const Duration(seconds: 3),
+      );
+    }
+  }
+
+  Future<void> savePatientDataToExcel() async {
+    var excel;
+    Sheet? sheetObject;
+    PatientEntity patient = predictionResult.value;
+
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      String outputPath = '${directory.path}/patient_data.xlsx';
+      File file = File(outputPath);
+
+      if (await file.exists()) {
+        var bytes = file.readAsBytesSync();
+        excel = Excel.decodeBytes(bytes);
+        sheetObject = excel['Patients'];
+      } else {
+        excel = Excel.createExcel();
+        sheetObject = excel['Patients'];
+        sheetObject?.appendRow([
+          'Patient ID', 'Accuracy', 'Age', 'Gender', 'Air Pollution', 'Alcohol Use',
+          'Dust Allergy', 'Occupational Hazards', 'Genetic Risk', 'Chronic Lung Disease',
+          'Balanced Diet', 'Obesity', 'Smoking', 'Passive Smoker', 'Chest Pain',
+          'Coughing of Blood', 'Fatigue', 'Weight Loss', 'Shortness of Breath',
+          'Wheezing', 'Swallowing Difficulty', 'Clubbing of Finger Nails',
+          'Frequent Cold', 'Dry Cough', 'Snoring', 'Level'
+        ]);
+      }
+
+      sheetObject!.appendRow([
+        patient.patientId,
+        patient.accuracy,
+        patient.age,
+        patient.gender,
+        patient.airPollution,
+        patient.alcoholUse,
+        patient.dustAllergy,
+        patient.occupationalHazards,
+        patient.geneticRisk,
+        patient.chronicLungDisease,
+        patient.balancedDiet,
+        patient.obesity,
+        patient.smoking,
+        patient.passiveSmoker,
+        patient.chestPain,
+        patient.coughingOfBlood,
+        patient.fatigue,
+        patient.weightLoss,
+        patient.shortnessOfBreath,
+        patient.wheezing,
+        patient.swallowingDifficulty,
+        patient.clubbingOfFingerNails,
+        patient.frequentCold,
+        patient.dryCough,
+        patient.snoring,
+        patient.level,
+      ]);
+
+      file.writeAsBytesSync(excel.encode()!);
+
+      Get.defaultDialog(
+        title: "Success",
+        middleText: "Patient data saved to Excel successfully! \n Data tersimpan di $directory\\patient_data.xlsx",
+        textConfirm: "OK",
+        confirmTextColor: Colors.white,
+        onConfirm: () {
+          Get.back();
+        },
+      );
+    } catch (e) {
+      Get.snackbar(
+        "Error",
+        "Failed to save patient data: $e",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
 }
